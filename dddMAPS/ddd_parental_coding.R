@@ -1,9 +1,13 @@
 # example of MAPS.R usage on DDD coding variants
-
 source("./MAPS.R")
 
-parental_gencode = read.table("../data/gencode_parental_alleles_FULL.txt", header = TRUE, sep = "\t")
-parental_gencode = subset(parental_gencode, nchar(as.character(ref)) == 1 & nchar(as.character(alt)) == 1)
+# run with pre-retrieved context
+parental_gencode_snps = read.table("../data/gencode_parental_snps_+context.txt", header = TRUE, sep = "\t")
+
+#run these lines instead of above to generate the context (takes longer)
+#parental_gencode = read.table("../data/gencode_parental_alleles_FULL.txt", header = TRUE, sep = "\t")
+#parental_gencode = subset(parental_gencode, nchar(as.character(ref)) == 1 & nchar(as.character(alt)) == 1)
+
 synonymous_parental_vars = subset(parental_gencode, vep_consequence == "synonymous_variant")
 
 # fit linear model to synonymous variants
