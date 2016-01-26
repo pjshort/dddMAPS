@@ -1,6 +1,3 @@
-library(plyr)
-library(stringr)
-
 # R script to use as a library for doing mutability adjusted proportion of singletons
 
 # important functions for user:
@@ -14,6 +11,8 @@ library(stringr)
 library(GenomicRanges)
 library(BSgenome.Hsapiens.UCSC.hg19)
 library(ggplot2)
+library(plyr)
+library(stringr)
 
 mu_snp <- read.table("../data/forSanger_1KG_mutation_rate_table.txt", header=TRUE)
 gencode = read.table("../data/gencode_protein_coding_genes_v19_+strand.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
