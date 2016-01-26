@@ -8,12 +8,14 @@
 # used internally: get_context and get_tri
 
 # requires
+print("Loading required packages...")
 library(GenomicRanges)
 library(BSgenome.Hsapiens.UCSC.hg19)
 library(ggplot2)
 library(plyr)
 library(stringr)
 
+print("Loading mutation data and gencode transcripts...")
 mu_snp <- read.table("../data/forSanger_1KG_mutation_rate_table.txt", header=TRUE)
 gencode = read.table("../data/gencode_protein_coding_genes_v19_+strand.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 #CNEs = read.table("../data/noncoding_regions.txt", header = TRUE, sep = "\t")  # only needed for noncoding analysis
@@ -144,7 +146,7 @@ maps_adjust = function(variants, split_factor, maps_lm, noncoding = TRUE) {
   return(list("ps_adjusted" = ps_adjusted, "standard_error" = standard_error))
 }
 
-ggplot_MAPS = function(split_levels, ps_adjusted, standard_error, already_ordered = FALSE){
+maps_ggplot = function(split_levels, ps_adjusted, standard_error, already_ordered = FALSE){
   # makes a simple ggplot of the mutability adjusted prop of singletons with error bars
 
   df = data.frame(split_level = split_levels, ratio = ps_adjusted, se = standard_error)
