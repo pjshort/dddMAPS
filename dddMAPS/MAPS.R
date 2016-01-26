@@ -10,12 +10,14 @@ library(stringr)
 
 # used internally: get_context and get_tri
 
+# requires
 library(GenomicRanges)
 library(BSgenome.Hsapiens.UCSC.hg19)
+library(ggplot2)
 
 mu_snp <- read.table("../data/forSanger_1KG_mutation_rate_table.txt", header=TRUE)
 gencode = read.table("../data/gencode_protein_coding_genes_v19_+strand.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-CNEs = read.table("../data/noncoding_regions.txt", header = TRUE, sep = "\t")
+#CNEs = read.table("../data/noncoding_regions.txt", header = TRUE, sep = "\t")  # only needed for noncoding analysis
 
 
 ### get the trinucleotide context
@@ -143,4 +145,24 @@ maps_adjust = function(variants, split_factor, maps_lm, noncoding = TRUE) {
   return(list("ps_adjusted" = ps_adjusted, "standard_error" = standard_error))
 }
 
+ggplot_MAPS = function(split_levels, ps_adjusted, standard_error, already_ordered = FALSE){
+  # makes a simple ggplot of the mutability adjusted prop of singletons with error bars
 
+  df = data.frame(split_level = split_levels, ratio = ps_adjusted, se = standard_error)
+  if (!already_ordered){
+    df = df[order(ps_adjusted),]
+  }
+
+  print("Removing NaNs (insufficient counts).")
+  df = df[!is.nan(df$ratio),]
+
+  df$split_level = factor(df$split_level, levels = df$split_level)
+
+  limits = aes(ymin = df$ratio - df$se, ymax = df$ratio + df$se )
+  ggplot(df, aes(split_level, ratio)) +
+    geom_pointrange(limits, size = 1.25) + coord_flip() +
+    xlab("") + ylab("Mutability Adjusted Proportion of Singletons") +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+    theme(plot.title = element_text(size = 16), axis.text = element_text(size = 14),
+          axis.title = element_text(size = 16), legend.title=element_blank(), legend.text=element_text(size = 12))
+}
