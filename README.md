@@ -47,4 +47,5 @@ Finally, a simple ggplot_MAPS function is included to sort and plot the MAPS val
 ggplot_MAPS = function(names(ps_adjusted), ps_adjusted, standard_error, already_ordered = FALSE)
 ```
 
-
+# Coding Region Example
+See dddMAPS/ddd_parental_coding.R for top-to-bottom example for the DDD parental coding regions.
