@@ -127,7 +127,7 @@ maps_adjust = function(variants, split_factor, maps_lm, noncoding = TRUE) {
   variant_split = split(variants, f = split_factor)
   ps_raw = sapply(variant_split, function(d) sum(d$allele_count == 1)/nrow(d))
   counts = sapply(variant_split, function(d) nrow(d))
-  standard_deviation = mapply(function(p,n) sqrt(p*(1-p)/n), ps_raw, counts)
+  standard_error = mapply(function(p,n) sqrt(p*(1-p)/n), ps_raw, counts)
 
   # calculate average mu_snp for each level in split_factor
   print("Calculating the average mutability across each category.")
@@ -143,14 +143,14 @@ maps_adjust = function(variants, split_factor, maps_lm, noncoding = TRUE) {
 
   ps_adjusted = ps_raw - ps_predicted
 
-  return(list("ps_adjusted" = ps_adjusted, "standard_deviation" = standard_deviation))
+  return(list("ps_adjusted" = ps_adjusted, "standard_error" = standard_error))
 }
 
-maps_ggplot = function(split_levels, ps_adjusted, standard_deviation, already_ordered = FALSE, colors = NULL){
+maps_ggplot = function(split_levels, ps_adjusted, standard_error, already_ordered = FALSE, colors = NULL){
   # makes a simple ggplot of the mutability adjusted prop of singletons with error bars
 
   
-  df = data.frame(split_level = split_levels, ratio = ps_adjusted, se = standard_deviation)
+  df = data.frame(split_level = split_levels, ratio = ps_adjusted, se = standard_error)
   
   if (!is.null(colors)){
     df$colors = colors
