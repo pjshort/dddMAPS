@@ -127,7 +127,7 @@ maps_adjust = function(variants, split_factor, maps_lm, noncoding = TRUE) {
   variant_split = split(variants, f = split_factor)
   ps_raw = sapply(variant_split, function(d) sum(d$allele_count == 1)/nrow(d))
   counts = sapply(variant_split, function(d) nrow(d))
-  standard_error = mapply(function(p,n) sqrt(p*(1-p)/n), ps_raw, counts)
+  standard_deviation = mapply(function(p,n) sqrt(p*(1-p)/n), ps_raw, counts)
 
   # calculate average mu_snp for each level in split_factor
   print("Calculating the average mutability across each category.")
@@ -143,13 +143,19 @@ maps_adjust = function(variants, split_factor, maps_lm, noncoding = TRUE) {
 
   ps_adjusted = ps_raw - ps_predicted
 
-  return(list("ps_adjusted" = ps_adjusted, "standard_error" = standard_error))
+  return(list("ps_adjusted" = ps_adjusted, "standard_deviation" = standard_deviation))
 }
 
-maps_ggplot = function(split_levels, ps_adjusted, standard_error, already_ordered = FALSE){
+maps_ggplot = function(split_levels, ps_adjusted, standard_deviation, already_ordered = FALSE, colors = NULL){
   # makes a simple ggplot of the mutability adjusted prop of singletons with error bars
 
-  df = data.frame(split_level = split_levels, ratio = ps_adjusted, se = standard_error)
+  
+  df = data.frame(split_level = split_levels, ratio = ps_adjusted, se = standard_deviation)
+  
+  if (!is.null(colors)){
+    df$colors = colors
+  }
+  
   if (!already_ordered){
     df = df[order(ps_adjusted),]
   }
@@ -159,8 +165,8 @@ maps_ggplot = function(split_levels, ps_adjusted, standard_error, already_ordere
 
   df$split_level = factor(df$split_level, levels = df$split_level)
 
-  limits = aes(ymin = df$ratio - df$se, ymax = df$ratio + df$se )
-  ggplot(df, aes(split_level, ratio)) +
+  limits = aes(ymin = df$ratio - 1.96*df$sd, ymax = df$ratio + 1.96*df$sd )
+  ggplot(df, aes(split_level, ratio, color = colors)) +
     geom_pointrange(limits, size = 1.25) + coord_flip() +
     xlab("") + ylab("Mutability Adjusted Proportion of Singletons") +
     theme(axis.text.x = element_text(angle = 60, hjust = 1)) +

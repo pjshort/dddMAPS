@@ -17,4 +17,4 @@ maps_lm = maps_fit(synonymous_parental_vars)
 out = maps_adjust(variants = parental_gencode, split_factor = parental_gencode$vep_consequence, maps_lm = maps_lm, noncoding = FALSE)
 
 # plot MAPS for each vep consequence
-maps_ggplot(names(out$ps_adjusted), out$ps_adjusted, out$standard_error, already_ordered = FALSE)
+maps_ggplot(names(out$ps_adjusted), out$ps_adjusted, out$standard_deviation, already_ordered = FALSE)
