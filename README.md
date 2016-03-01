@@ -44,7 +44,7 @@ ps_adjusted will be a named vector with the mutability adjusted proportion of si
 
 Finally, a simple ggplot_MAPS function is included to sort and plot the MAPS values by split_factor:
 ```R
-ggplot_MAPS = function(names(ps_adjusted), ps_adjusted, standard_error, already_ordered = FALSE)
+maps_ggplot = function(names(ps_adjusted), ps_adjusted, standard_error, already_ordered = FALSE)
 ```
 
 # Coding Region Example
