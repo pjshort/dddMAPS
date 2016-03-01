@@ -140,13 +140,23 @@ maps_adjust = function(variants, split_factor, maps_lm, noncoding = TRUE) {
   print("Predicting the mutability based on sequence context and adjusting...")
 
   ps_predicted = predict(maps_lm, data.frame(mu_snp = unlist(mu_average)))
-
   ps_adjusted = ps_raw - ps_predicted
-
+  
   return(list("ps_adjusted" = ps_adjusted, "standard_error" = standard_error))
 }
 
-maps_ggplot = function(split_levels, ps_adjusted, standard_error, already_ordered = FALSE, colors = NULL){
+ps_raw = function(variants, split_factor){
+  
+  # calculate the singleton_ratio_raw for each split_factor
+  variant_split = split(variants, f = split_factor)
+  ps_raw = sapply(variant_split, function(d) sum(d$allele_count == 1)/nrow(d))
+  counts = sapply(variant_split, function(d) nrow(d))
+  standard_error = mapply(function(p,n) sqrt(p*(1-p)/n), ps_raw, counts)
+  
+  return(list("ps_raw" = ps_raw, "standard_error" = standard_error))
+}
+
+maps_ggplot = function(split_levels, ps_adjusted, standard_error, already_ordered = FALSE, colors = NULL, score_name = "Scoring Metric"){
   # makes a simple ggplot of the mutability adjusted prop of singletons with error bars
 
   
@@ -154,22 +164,35 @@ maps_ggplot = function(split_levels, ps_adjusted, standard_error, already_ordere
   
   if (!is.null(colors)){
     df$colors = colors
+  } else {
+    df$colors = NULL
   }
   
   if (!already_ordered){
-    df = df[order(ps_adjusted),]
+    df = df[order(df$ratio),]
   }
 
   print("Removing NaNs (insufficient counts).")
   df = df[!is.nan(df$ratio),]
 
   df$split_level = factor(df$split_level, levels = df$split_level)
-
-  limits = aes(ymin = df$ratio - 1.96*df$sd, ymax = df$ratio + 1.96*df$sd )
-  ggplot(df, aes(split_level, ratio, color = colors)) +
-    geom_pointrange(limits, size = 1.25) + coord_flip() +
-    xlab("") + ylab("Mutability Adjusted Proportion of Singletons") +
-    theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
-    theme(plot.title = element_text(size = 16), axis.text = element_text(size = 14),
-          axis.title = element_text(size = 16), legend.title=element_blank(), legend.text=element_text(size = 12))
+  
+  if (is.null(colors)){  # plot all in black
+    limits = aes(ymin = df$ratio - 1.96*df$se, ymax = df$ratio + 1.96*df$se)
+    ggplot(df, aes(split_level, ratio)) +
+      geom_pointrange(limits, size = 1.25) + coord_flip() +
+      xlab(score_name) + ylab("Mutability Adjusted Proportion of Singletons") +
+      theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+      theme(plot.title = element_text(size = 16), axis.text = element_text(size = 14),
+            axis.title = element_text(size = 16), legend.title=element_blank(), legend.text=element_text(size = 12))
+  } else {  # plot with colored entries
+    limits = aes(ymin = df$ratio - 1.96*df$se, ymax = df$ratio + 1.96*df$se)
+    ggplot(df, aes(split_level, ratio, color = colors)) +
+      geom_pointrange(limits, size = 1.25) + coord_flip() +
+      xlab(score_name) + ylab("Mutability Adjusted Proportion of Singletons") +
+      theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+      theme(plot.title = element_text(size = 16), axis.text = element_text(size = 14),
+            axis.title = element_text(size = 16), legend.title=element_blank(), legend.text=element_text(size = 12))
+  }
 }
+
