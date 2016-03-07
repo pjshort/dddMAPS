@@ -14,7 +14,7 @@ biocLite("GenomicRanges")
 biocLite("BSgenome.Hsapiens.UCSC.hg19")
 ```
 
-The code will run much faster with the Ensembl transcripts file that has pre-loaded sequence context for each transcript.
+The code will run much faster with the Ensembl transcripts file that has pre-loaded sequence context for each transcript. This is on the sanger farm - please get in touch for the path to these files!
 
 # Fit maps_fit and run maps_adjust
 
