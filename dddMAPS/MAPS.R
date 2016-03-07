@@ -156,7 +156,7 @@ ps_raw = function(variants, split_factor){
   return(list("ps_raw" = ps_raw, "standard_error" = standard_error))
 }
 
-maps_ggplot = function(split_levels, ps_adjusted, standard_error, already_ordered = FALSE, colors = NULL, score_name = "Scoring Metric"){
+maps_ggplot = function(split_levels, ps_adjusted, standard_error, already_ordered = FALSE, add_coding_fixed = FALSE, colors = NULL, score_name = "Scoring Metric"){
   # makes a simple ggplot of the mutability adjusted prop of singletons with error bars
 
   
@@ -170,6 +170,14 @@ maps_ggplot = function(split_levels, ps_adjusted, standard_error, already_ordere
   
   if (!already_ordered){
     df = df[order(df$ratio),]
+  }
+  
+  if (add_coding_fixed == TRUE){  # these are from VEP consequences on DDD unaffected parents
+    coding_fixed = data.frame(split_level = c("Synonymous", "Missense", "Stop Gained"), ratio = c(0, 0.0395, 0.123), se = c(0.0007, 0.0005, 0.003))
+    coding_fixed$colors = "Coding VEP"
+    df$colors = score_name
+    df = rbind(df, coding_fixed)
+    colors = TRUE
   }
 
   print("Removing NaNs (insufficient counts).")
