@@ -68,14 +68,19 @@ Regions file requires chr, start, stop, and 'region_id'. This could be the name 
 
 ```bash
 bsub -J exhaustive_noncoding[1-7540:10] -q normal -R'select[mem>300] rusage[mem=300]' -M300 \
--o $pjs/MACB/logs/non_coding_exhaustive.%I.out /software/R-3.2.2/bin/Rscript create_exhaustive_allele_files.Rscript \ --index=\$LSB_JOBINDEX --index_step=10 --regions=~/reference_data/CNEs_subtract_CDS.txt \ --out_base=$pjs/MACB/alleles/noncoding_exhaustive_allele
+-o $pjs/MACB/logs/non_coding_exhaustive.%I.out /software/R-3.2.2/bin/Rscript create_exhaustive_allele_files.Rscript \
+--index=\$LSB_JOBINDEX --index_step=10 --regions=~/reference_data/CNEs_subtract_CDS.txt \
+--out_base=$pjs/MACB/alleles/noncoding_exhaustive_allele
 ```
 
 ## Calculate CADD scores
 This requires the CADD SNP score tabix file.
 
 ```bash
-bsub -q normal -J "noncoding_exhaustive_cadd[1-7540:10]" -R'select[mem>100] rusage[mem=100]' -M100 -o \ /lustre/scratch113/projects/ddd/users/ps14/CADD/logs/noncoding_exhaustive.%I.out python -u \ ~/software/SingletonMetric/python/TabixScores.py --tabix /lustre/scratch113/projects/ddd/users/ps14/CADD/whole_genome_SNVs.tsv.gz \ --variants $pjs/MACB/alleles/noncoding_exhaustive_allele.\$LSB_JOBINDEX.txt \
+bsub -q normal -J "noncoding_exhaustive_cadd[1-7540:10]" -R'select[mem>100] rusage[mem=100]' -M100 -o \
+/lustre/scratch113/projects/ddd/users/ps14/CADD/logs/noncoding_exhaustive.%I.out python -u \
+~/software/SingletonMetric/python/TabixScores.py --tabix /lustre/scratch113/projects/ddd/users/ps14/CADD/whole_genome_SNVs.tsv.gz \
+--variants $pjs/MACB/alleles/noncoding_exhaustive_allele.\$LSB_JOBINDEX.txt \
 --variants_out $pjs/MACB/alleles/noncoding_exhaustive_allele.$LSB_JOBINDEX.CADD.txt \
 --score CADD
 ```
