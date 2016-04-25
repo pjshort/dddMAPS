@@ -67,7 +67,7 @@ The workflow for calculating MACB is simply:
 Regions file requires chr, start, stop, and 'region_id'. This could be the name of the gene, or in the case of noncoding elements it is simply 'chr:start-stop'. This is used to calculate the expected mutability for a given region. If a region id is not provided, the script will look for 'gene' column and if not found, a region_id column will be created.
 
 ```bash
-bsub -J exhaustive_noncoding[1-7540:10] -q normal -R'select[mem>300] rusage[mem=300]' -M300 \
+bsub -J exhaustive_noncoding[1-7600:100] -q normal -R'select[mem>1000] rusage[mem=1000]' -M1000 \
 -o $pjs/MACB/logs/non_coding_exhaustive.%I.out /software/R-3.2.2/bin/Rscript create_exhaustive_allele_files.Rscript \
 --index=\$LSB_JOBINDEX --index_step=10 --regions=~/reference_data/CNEs_subtract_CDS.txt \
 --out_base=$pjs/MACB/alleles/noncoding_exhaustive_allele
@@ -77,7 +77,7 @@ bsub -J exhaustive_noncoding[1-7540:10] -q normal -R'select[mem>300] rusage[mem=
 This requires the CADD SNP score tabix file.
 
 ```bash
-bsub -q normal -J "noncoding_exhaustive_cadd[1-7540:10]" -R'select[mem>100] rusage[mem=100]' -M100 -o \
+bsub -q normal -J "noncoding_exhaustive_cadd[1-7600:100]" -R'select[mem>100] rusage[mem=100]' -M100 -o \
 /lustre/scratch113/projects/ddd/users/ps14/CADD/logs/noncoding_exhaustive.%I.out python -u \
 ~/software/SingletonMetric/python/TabixScores.py --tabix /lustre/scratch113/projects/ddd/users/ps14/CADD/whole_genome_SNVs.tsv.gz \
 --variants $pjs/MACB/alleles/noncoding_exhaustive_allele.\$LSB_JOBINDEX.txt \
@@ -88,11 +88,11 @@ bsub -q normal -J "noncoding_exhaustive_cadd[1-7540:10]" -R'select[mem>100] rusa
 ## Calculate MACB for each of the regions.
 
 ```bash
-bsub -J MACB_noncoding -q normal -R'select[mem>10000] rusage[mem=10000]' -M10000 -o \
+bsub -J MACB_noncoding -q normal -R'select[mem>500] rusage[mem=500]' -M500 -o \
 $pjs/MACB/logs/noncoding_MACB.%I.out /software/R-3.2.2/bin/Rscript \
 ~/software/dddMAPS/dddMACB/calculate_MACB_null.Rscript \
 --input_base=$pjs/MACB/alleles/noncoding_alleles_exhaustive \
---index_start=1 --index_stop=7540 --index_step=10 --out=$pjs/MACB/non_coding_elements_MACB.txt \
+--index_start=1 --index_stop=7600 --index_step=100 --out=$pjs/MACB/non_coding_elements_MACB.txt \
 --score=MACB
 ```
 
