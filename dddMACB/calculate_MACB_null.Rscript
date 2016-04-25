@@ -1,0 +1,31 @@
+### dependencies
+library(optparse)
+library(plyr)
+setwd("/nfs/users/nfs_p/ps14/software/SingletonMetric/data")
+source("../R/mutation_null_model.R")
+
+### command line options
+option_list <- list(
+  make_option("--input_base", help="Exhaustive allele file that has been scored with CADD. If file is called 'exhaustive_alleles.1.CADD.txt' then base name should be 'exhaustive_alleles'"),
+  make_option("--index_start", help="chunk to start reading on"),
+  make_option("--index_stop", help="chunk to stop reading on"),
+  make_option("--index_step", default=1, help="defaults to one - if chunks are larger than put correct number to save time"),
+  make_option("--out", help="file to write MACB expectation file to")
+)
+
+args <- parse_args(OptionParser(option_list=option_list))
+
+# load the ddd non-coding elements
+index = seq(args$index_start, args$index_stop, args$index_step)
+MACB_list = vector("list", length(index))  # empty list to fill with dataframe by chromosome
+
+for (i in index) {
+  write(sprintf("Calculating MACB for chunk %i", i))
+  alleles = read.table(file = paste0(args$input_base, ".", i, ".CADD.txt"), header = TRUE, sep = "\t")
+  colnames(alleles) = c("chr", "pos",	"ref", "alt", "region_id", "p_snp_null", "unscaled_CADD", "scaled_CADD")
+  MACB_list[[i]] = ddply(alleles, "region_id", function(df) data.frame(p_snp_null = sum(df$p_snp_null), expected_CADD_score_per_variant = sum(df$p_snp_null*df$scaled_CADD)/sum(df$p_snp_null)))
+}
+
+MACB = do.call(rbind, MACB_list)
+write.table(MACB, args$out, col.names = TRUE, sep = "\t", row.names = FALSE, quote = FALSE)
+
