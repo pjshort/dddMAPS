@@ -49,3 +49,12 @@ maps_ggplot = function(names(ps_adjusted), ps_adjusted, standard_error, already_
 
 # Coding Region Example
 See dddMAPS/ddd_parental_coding.R for top-to-bottom example for the DDD parental coding regions.
+
+
+#dddMACB
+This stands for 'mutability adjusted cadd burden' and is being used as a simple and flexible way to calculate constraint scores that are comparable between coding and non-coding regions.
+
+The workflow for calculating MACB is simply:
+1. Generate an 'exhaustive allele file' for all regions of interest. This includes every ref/alt combo at each position across the region.
+2. Calculate CADD scores for each of these positions.
+3. Use the mutability and the CADD score to calculate the weighted average of CADD scores across the region/element provided. This can be thought of as the expected value of the CADD score for a de novo mutation in the region.
