@@ -1,3 +1,5 @@
+The dddMAPS project contains two libraries that can be used to calculate constraint in coding/noncoding regions. The first, dddMAPS, is focused on 'mutability adjusted proportion of singletons', a measure of purifying selection. The second, dddMACB, is focused on measuring constraint by comparing the observed amount of damaging variation in an element (as scored by CADD) compared to the amount expected under a selection-neutral model.
+
 # dddMAPS
 Mutability adjusted proportion of singletons (MAPS) calculation using synonymous SNPs from the DDD unaffected parents.
 
@@ -62,12 +64,11 @@ The workflow for calculating MACB is simply:
 
 ## Generate Exhaustive SNP file
 
-Regions file requires chr, start, stop, and 'region_id'. This could be the name of the gene, or in the case of noncoding elements it is simply 'chr:start-stop'. This is used to calculate the expected mutability for a given region.
+Regions file requires chr, start, stop, and 'region_id'. This could be the name of the gene, or in the case of noncoding elements it is simply 'chr:start-stop'. This is used to calculate the expected mutability for a given region. If a region id is not provided, the script will look for 'gene' column and if not found, a region_id column will be created.
 
 ```bash
-bsub -J exhaustive_noncoding[1-7540:10] -q normal -R'select[mem>1000] rusage[mem=1000]' -M1000 -o \ $pjs/MACB/logs/non_coding_exhaustive.%I.out /software/R-3.2.2/bin/Rscript \
-~/software/dddMAPS/dddMACB/create_exhaustive_allele_files.Rscript --index=\$LSB_JOBINDEX \
---regions=~/software/CNEs_subtract_CDS.txt --out_base=$pjs/MACB/alleles/noncoding_exhaustive_allele
+bsub -J exhaustive_noncoding[1-7540:10] -q normal -R'select[mem>300] rusage[mem=300]' -M300 \
+-o $pjs/MACB/logs/non_coding_exhaustive.%I.out /software/R-3.2.2/bin/Rscript create_exhaustive_allele_files.Rscript \ --index=\$LSB_JOBINDEX --index_step=10 --regions=~/reference_data/CNEs_subtract_CDS.txt \ --out_base=$pjs/MACB/alleles/noncoding_exhaustive_allele
 ```
 
 ## Calculate CADD scores
