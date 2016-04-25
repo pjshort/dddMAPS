@@ -66,35 +66,68 @@ The workflow for calculating MACB is simply:
 
 Regions file requires chr, start, stop, and 'region_id'. This could be the name of the gene, or in the case of noncoding elements it is simply 'chr:start-stop'. This is used to calculate the expected mutability for a given region. If a region id is not provided, the script will look for 'gene' column and if not found, a region_id column will be created.
 
+Output will be written as --outpaste.index.txt where index is provided by the job array index (in this case, 1, 101, 201, ..., 7501).
+
 ```bash
 bsub -J exhaustive_noncoding[1-7600:100] -q normal -R'select[mem>1000] rusage[mem=1000]' -M1000 \
 -o $pjs/MACB/logs/non_coding_exhaustive.%I.out /software/R-3.2.2/bin/Rscript create_exhaustive_allele_files.Rscript \
---index=\$LSB_JOBINDEX --index_step=10 --regions=~/reference_data/CNEs_subtract_CDS.txt \
---out_base=$pjs/MACB/alleles/noncoding_exhaustive_allele
+--index=\$LSB_JOBINDEX --index_step=100 --regions=~/reference_data/CNEs_subtract_CDS.txt \
+--out_base=$pjs/MACB/alleles/noncoding_alleles_exhaustive
 ```
+
+Runs quickly. Less than 1 minute for 100 regions of 1000bp each.
 
 ## Calculate CADD scores
 This requires the CADD SNP score tabix file.
 
 ```bash
-bsub -q normal -J "noncoding_exhaustive_cadd[1-7600:100]" -R'select[mem>100] rusage[mem=100]' -M100 -o \
+bsub -q normal -J "noncoding_exhaustive_cadd[1-7600:100]" -R'select[mem>200] rusage[mem=200]' -M200 -o \
 /lustre/scratch113/projects/ddd/users/ps14/CADD/logs/noncoding_exhaustive.%I.out python -u \
 ~/software/SingletonMetric/python/TabixScores.py --tabix /lustre/scratch113/projects/ddd/users/ps14/CADD/whole_genome_SNVs.tsv.gz \
---variants $pjs/MACB/alleles/noncoding_exhaustive_allele.\$LSB_JOBINDEX.txt \
---variants_out $pjs/MACB/alleles/noncoding_exhaustive_allele.$LSB_JOBINDEX.CADD.txt \
+--variants $pjs/MACB/alleles/noncoding_alleles_exhaustive.\$LSB_JOBINDEX.txt \
+--variants_out $pjs/MACB/alleles/noncoding_alleles_exhaustive.\$LSB_JOBINDEX.CADD.txt \
 --score CADD
 ```
+
+Slowest step of the three. 10-20 minutes for 100 regions of 1000bp each.
 
 ## Calculate MACB for each of the regions.
 
 ```bash
 bsub -J MACB_noncoding -q normal -R'select[mem>500] rusage[mem=500]' -M500 -o \
-$pjs/MACB/logs/noncoding_MACB.%I.out /software/R-3.2.2/bin/Rscript \
+$pjs/MACB/logs/noncoding_MACB.out /software/R-3.2.2/bin/Rscript \
 ~/software/dddMAPS/dddMACB/calculate_MACB_null.Rscript \
 --input_base=$pjs/MACB/alleles/noncoding_alleles_exhaustive \
 --index_start=1 --index_stop=7600 --index_step=100 --out=$pjs/MACB/non_coding_elements_MACB.txt \
 --score=MACB
 ```
 
+~5 minutes to complete for noncoding, but longer for coding. Limited by I/O, so less chunks (larger files) in step 1,2 will be faster.
+
 To run a MACB that is more like loss-of-function intolerance, MACB25 calculates the expected proportion of sites with CADD >25 weighted by mutability. By multiplying this by the estimate of rare variants per element, this provides the expected number of LoF-like variants in an element.
 
+Here is the same MACB pipeline for the coding regions of gencode v19:
+
+```bash
+# generate exhaustive allele files
+bsub -J exhaustive_coding[1-671100:100] -q normal -R'select[mem>1000] rusage[mem=1000]' -M1000 \
+-o $pjs/MACB/logs/coding_exhaustive.%I.out /software/R-3.2.2/bin/Rscript create_exhaustive_allele_files.Rscript \
+--index=\$LSB_JOBINDEX --index_step=100 --regions=~/reference_data/gencode.v19.CDS.min_10_coverage.txt \
+--out_base=$pjs/MACB/alleles/coding_alleles_exhaustive
+
+# score each allele
+bsub -q normal -J "coding_exhaustive_cadd[1-671100:100]" -R'select[mem>100] rusage[mem=100]' -M100 -o \
+/lustre/scratch113/projects/ddd/users/ps14/CADD/logs/coding_exhaustive.%I.out python -u \
+~/software/SingletonMetric/python/TabixScores.py --tabix /lustre/scratch113/projects/ddd/users/ps14/CADD/whole_genome_SNVs.tsv.gz \
+--variants $pjs/MACB/alleles/coding_alleles_exhaustive.\$LSB_JOBINDEX.txt \
+--variants_out $pjs/MACB/alleles/coding_alleles_exhaustive.\$LSB_JOBINDEX.CADD.txt \
+--score CADD
+
+# calculate MACB expectations
+bsub -J MACB_coding -q normal -R'select[mem>500] rusage[mem=500]' -M500 -o \
+$pjs/MACB/logs/coding_MACB.out /software/R-3.2.2/bin/Rscript \
+~/software/dddMAPS/dddMACB/calculate_MACB_null.Rscript \
+--input_base=$pjs/MACB/alleles/coding_alleles_exhaustive \
+--index_start=1 --index_stop=1000 --index_step=100 --out=$pjs/MACB/coding_elements_MACB.txt \
+--score=MACB
+```
