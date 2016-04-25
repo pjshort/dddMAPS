@@ -9,7 +9,7 @@ maps_plus_bar = function(split_levels, ps_adjusted, standard_error, variants, sp
   # makes mutability adjusted proportion of singletons plot by split_levels plus bar plot with number of variants per bin
   
   # get the main singleton plot
-  main = maps_ggplot(split_levels, ps_adjusted, standard_error,  add_coding_fixed = add_coding_fixed, already_ordered = already_ordered, colors = colors, score_name = score_name)
+  main = maps_ggplot(split_levels, ps_adjusted, standard_error,  add_coding_fixed = add_coding_fixed, already_ordered = TRUE, colors = colors, score_name = score_name)
   
   # get the number of variants per split level
   counts = sapply(split(variants, split_factor), nrow)

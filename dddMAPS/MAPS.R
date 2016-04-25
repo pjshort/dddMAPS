@@ -18,12 +18,13 @@ library(stringr)
 print("Loading mutation data and gencode transcripts...")
 mu_snp <- read.table("../data/forSanger_1KG_mutation_rate_table.txt", header=TRUE)
 gencode = read.table("../data/gencode_protein_coding_genes_v19_+strand.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-#CNEs = read.table("../data/noncoding_regions.txt", header = TRUE, sep = "\t")  # only needed for noncoding analysis
+CNEs = read.table("../data/CNEs_subtract_CDS.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)  # only needed for noncoding analysis
 
 
 ### get the trinucleotide context
 
 get_tri = function(interval_idx, pos, intervals) {
+  
   start = pos - intervals$start[interval_idx]
   end = pos - intervals$start[interval_idx] + 2
 
@@ -53,6 +54,9 @@ get_tri = function(interval_idx, pos, intervals) {
 get_context = function(chromosomes, positions, intervals) {
   # faster version using intervals with $seq column. must be sure that all chr, pos are contained in this set of intervals
 
+  chromosomes = gsub("^chr", "", chromosomes)
+  intervals$chr = gsub("^chr", "", intervals$chr)
+  
   p = GRanges(seqnames=Rle(chromosomes), ranges = IRanges(start = positions, end = positions))
 
   if (!is.null(intervals)) {  # the fast way
@@ -60,10 +64,11 @@ get_context = function(chromosomes, positions, intervals) {
   } else {
     # the SLOW way using hg19 sequence retrieval for all tri-nucleotides
   }
-
+  
+  
   # find overlap between denovos and annotated CNEs
   interval_hits_idx = findOverlaps(p, i, select = "first")
-
+  
   context = mapply(get_tri, interval_hits_idx, positions, MoreArgs = list("intervals" = intervals))
   context = sapply(context, as.character)
 
@@ -71,11 +76,15 @@ get_context = function(chromosomes, positions, intervals) {
 
 }
 
+reverse_complement = function(seq){
+  return(as.character(reverseComplement(DNAString(seq))))
+}
+
 
 maps_fit = function(synonymous_vars){
   # synonymous vars should have chr, pos, ref, alt, allele_count
   # mu snps is three columns: from, to, mu_snp
-
+  
   if (!("context" %in% colnames(synonymous_vars))){
     # retrieve context info
     print("Getting tri-nucleotide context for each synonymous variant.")
@@ -106,7 +115,15 @@ maps_adjust = function(variants, split_factor, maps_lm, noncoding = TRUE) {
   # maps_model is a linear model learned on presumed synonymous mutations using lm(singletons/n ~ mu_snp)
   # with mu_snp from the tri-nucleotide mutation model
 
-
+  reqd_columns = c("chr", "pos", "allele_count")
+  if (!all(reqd_columns %in% colnames(variants))){
+    warning("One or more required columns missing (chr, pos, allele_count).")
+  }
+  
+  if ("ac" %in% colnames(variants)){
+    colnames(variants)[colnames(variants) == "ac"] = "allele_count"
+  }
+  
   # check if context in colnames. if not, get context for each of the variants and average over them all
   if (!("context" %in% colnames(variants))){
     # retrieve context info
