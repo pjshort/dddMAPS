@@ -83,10 +83,13 @@ bsub -q normal -J "noncoding_exhaustive_cadd[1-7540:10]" -R'select[mem>100] rusa
 ## Calculate MACB for each of the regions.
 
 ```bash
-bsub -J MACB_noncoding -q normal -R'select[mem>10000] rusage[mem=10000]' -M10000 -o \ 
+bsub -J MACB_noncoding -q normal -R'select[mem>10000] rusage[mem=10000]' -M10000 -o \
 $pjs/MACB/logs/noncoding_MACB.%I.out /software/R-3.2.2/bin/Rscript \
 ~/software/dddMAPS/dddMACB/calculate_MACB_null.Rscript \
---input_base=$pjs/MACB/alleles/noncoding_exhaustive_allele \
---index_start=1 --index_stop=7540 --index_step=10 --out=$pjs/MACB/non_coding_elements_MACB.txt
+--input_base=$pjs/MACB/alleles/noncoding_alleles_exhaustive \
+--index_start=1 --index_stop=7540 --index_step=10 --out=$pjs/MACB/non_coding_elements_MACB.txt \
+--score=MACB
 ```
+
+To run a MACB that is more like loss-of-function intolerance, MACB25 calculates the expected proportion of sites with CADD >25 weighted by mutability. By multiplying this by the estimate of rare variants per element, this provides the expected number of LoF-like variants in an element.
 
