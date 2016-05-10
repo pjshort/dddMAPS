@@ -110,13 +110,13 @@ Here is the same MACB pipeline for the coding regions of gencode v19:
 
 ```bash
 # generate exhaustive allele files
-bsub -J exhaustive_coding[1-671100:100] -q normal -R'select[mem>1000] rusage[mem=1000]' -M1000 \
+bsub -J exhaustive_coding[1-189200:100] -q normal -R'select[mem>1000] rusage[mem=1000]' -M1000 \
 -o $pjs/MACB/logs/coding_exhaustive.%I.out /software/R-3.2.2/bin/Rscript create_exhaustive_allele_files.Rscript \
---index=\$LSB_JOBINDEX --index_step=100 --regions=~/reference_data/gencode.v19.CDS.min_10_coverage.txt \
+--index=\$LSB_JOBINDEX --index_step=100 --regions=/nfs/users/nfs_p/ps14/reference_data/gencode.v19.CDS.min_10_coverage.gene_union.txt \
 --out_base=$pjs/MACB/alleles/coding_alleles_exhaustive
 
 # score each allele
-bsub -q normal -J "coding_exhaustive_cadd[1-671100:100]" -R'select[mem>100] rusage[mem=100]' -M100 -o \
+bsub -q normal -J "coding_exhaustive_cadd[1-189200:100]" -R'select[mem>200] rusage[mem=200]' -M200 -o \
 /lustre/scratch113/projects/ddd/users/ps14/CADD/logs/coding_exhaustive.%I.out python -u \
 ~/software/SingletonMetric/python/TabixScores.py --tabix /lustre/scratch113/projects/ddd/users/ps14/CADD/whole_genome_SNVs.tsv.gz \
 --variants $pjs/MACB/alleles/coding_alleles_exhaustive.\$LSB_JOBINDEX.txt \
@@ -128,6 +128,6 @@ bsub -J MACB_coding -q normal -R'select[mem>500] rusage[mem=500]' -M500 -o \
 $pjs/MACB/logs/coding_MACB.out /software/R-3.2.2/bin/Rscript \
 ~/software/dddMAPS/dddMACB/calculate_MACB_null.Rscript \
 --input_base=$pjs/MACB/alleles/coding_alleles_exhaustive \
---index_start=1 --index_stop=1000 --index_step=100 --out=$pjs/MACB/coding_elements_MACB.txt \
+--index_start=1 --index_stop=189200 --index_step=100 --out=$pjs/MACB/coding_elements_MACB.txt \
 --score=MACB
 ```
