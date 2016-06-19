@@ -1,0 +1,72 @@
+### dependencies
+library(optparse)
+
+### command line options
+option_list <- list(
+  make_option("--index", default=1,
+              help="Run the script for a particular region within the regions input file."),
+  make_option("--regions", help = "regions for which exhaustive allele files should be generated. specific region is set by index and delimiter."),
+  make_option("--index_step", default=1, help="Number of regions to include in a single script - limits the number of output files created if set >1"),
+  make_option("--out_base", default="./exhaustive_snps", help="base name of file to write out to. will '.index.txt' will be appended to the end.")
+)
+
+args <- parse_args(OptionParser(option_list=option_list))
+
+source("~/software/SingletonMetric/R/mutation_null_model.R")
+library(stringr)
+library(BSgenome.Hsapiens.UCSC.hg19)
+
+write("Finished loading packages...")
+
+# calculate the mutability for each site, three alt probabilities
+exhaustive_allele_df = function(chr, start, end, region_id, seq) {
+
+  # for each position, retrieve all possible from/to with mut_rates
+  first_tri = as.character(getSeq(Hsapiens, paste0("chr", chr), start - 1, start + 1))
+  if ((end - start) > 1){
+    seq_tris = sapply(seq(1, end - start - 1), function(i) substr(seq, i, i + 2))
+  } else {
+    seq_tris = NULL
+  }
+  last_tri = as.character(getSeq(Hsapiens, paste0("chr", chr), end - 1, end + 1))
+
+  seq_tris = c(first_tri, seq_tris, last_tri)
+
+  positions = unlist(sapply(seq(start, end), function(i) rep(i, 3), simplify = FALSE))
+  refs = sapply(seq_tris, function(s) substr(s,2,2))
+  alts = unlist(sapply(refs, function(r) c("A", "T", "G","C")[!(c("A", "T", "G","C") %in% r)], simplify = FALSE))
+  refs = unlist(sapply(refs, function(r) rep(r,3), simplify = FALSE))
+  context = unlist(sapply(seq_tris, function(t) rep(t,3), simplify = FALSE))
+  alt_context = context
+  str_sub(alt_context, 2, 2) <- alts
+
+  mu = mut_rates$mu_snp[match(paste0(context, alt_context), paste0(mut_rates$from, mut_rates$to))]
+
+  alleles = data.frame(chr = chr, pos = positions, ref = refs, alt = alts, region_id = region_id, mu_snp = mu)
+
+  return(alleles)
+
+}
+
+write("Loading the regions of interest")
+regions = read.table(args$regions, header = TRUE, sep = "\t")
+
+idx_start = args$index
+idx_stop = min((args$index + args$index_step - 1), nrow(regions))
+regions = regions[idx_start:idx_stop, ]
+
+write("Getting sequence context for the regions supplied")
+regions$seq = mapply(function(c, s, e) as.character(getSeq(Hsapiens, paste0("chr",c), s, e)), regions$chr, regions$start, regions$stop)
+regions$chr = gsub("chr", "", regions$chr)
+
+# write if there is a 'gene' column, setting to region_id
+if ("gene" %in% colnames(regions)){
+  regions$region_id = regions$gene
+} else {
+  regions$region_id = paste0(regions$chr, ":", regions$start, "-", regions$stop)
+}
+
+all_snps = mapply(exhaustive_allele_df, as.character(regions$chr), as.numeric(regions$start), as.numeric(regions$stop), as.character(regions$region_id), as.character(regions$seq), SIMPLIFY = FALSE)
+all_snps = do.call(rbind, all_snps)
+
+write.table(all_snps, file = paste0(args$out_base, ".", args$index, ".txt"), col.names = TRUE, row.names = FALSE, quote = FALSE, sep = "\t")
