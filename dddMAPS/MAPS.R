@@ -17,9 +17,10 @@ library(stringr)
 
 print("Loading mutation data and gencode transcripts...")
 mu_snp <- read.table("../data/forSanger_1KG_mutation_rate_table.txt", header=TRUE)
-gencode = read.table("../data/gencode_protein_coding_genes_v19_+strand.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-CNEs = read.table("../data/CNEs_subtract_CDS.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)  # only needed for noncoding analysis
+gencode = read.table("../data/gencode.v19.CDS.probe_overlap.min10_coverage.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+noncoding_intervals = read.table("../data/noncoding_control_and_functional.min10_coverage.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)  # only needed for noncoding analysis
 
+sequences = rbind(gencode[,c("chr", "start", "stop", "seq")], noncoding_intervals[,c("chr", "start", "stop", "seq")])
 
 ### get the trinucleotide context
 
@@ -34,14 +35,16 @@ get_tri = function(interval_idx, pos, intervals) {
   # this is the correct tri-nucleotide since 1010 is the 11th base after 1000
 
   chr = intervals$chr[interval_idx]
-  if (!grepl("chr", chr)){
-    chr = paste0("chr", chr)
-  }
+  
   seq = as.character(intervals$seq[interval_idx])
 
   if (start == 0 | end > nchar(seq)) {
     # retrieve using getSeq
 
+    if (!grepl("chr", chr)){
+      chr = paste0("chr", chr)
+    }
+    
     tri = getSeq(Hsapiens, chr, pos - 1, pos + 1)  # uses absolute start/stop
 
 
@@ -66,7 +69,7 @@ get_context = function(chromosomes, positions, intervals) {
   }
   
   
-  # find overlap between denovos and annotated CNEs
+  # find overlap between denovos and annotated noncoding
   interval_hits_idx = findOverlaps(p, i, select = "first")
   
   context = mapply(get_tri, interval_hits_idx, positions, MoreArgs = list("intervals" = intervals))
@@ -88,7 +91,12 @@ maps_fit = function(synonymous_vars){
   if (!("context" %in% colnames(synonymous_vars))){
     # retrieve context info
     print("Getting tri-nucleotide context for each synonymous variant.")
-    synonymous_vars$context = get_context(paste0("chr", synonymous_vars$chr), synonymous_vars$pos, gencode)
+    
+    if (!(any(grepl("chr", synonymous_vars$chr)))) {
+      synonymous_vars$chr = paste0("chr", synonymous_vars$chr)
+    }
+    
+    synonymous_vars$context = get_context(synonymous_vars$chr, synonymous_vars$pos, gencode)
   }
 
   if (!("alt_context" %in% colnames(synonymous_vars))){
@@ -110,7 +118,7 @@ maps_fit = function(synonymous_vars){
 }
 
 
-maps_adjust = function(variants, split_factor, maps_lm, noncoding = TRUE) {
+maps_adjust = function(variants, split_factor, maps_lm) {
   # take a dataframe of variants that are separated by some identifier called split_factor e.g. "cadd_score"
   # maps_model is a linear model learned on presumed synonymous mutations using lm(singletons/n ~ mu_snp)
   # with mu_snp from the tri-nucleotide mutation model
@@ -128,11 +136,8 @@ maps_adjust = function(variants, split_factor, maps_lm, noncoding = TRUE) {
   if (!("context" %in% colnames(variants))){
     # retrieve context info
     print("Getting tri-nucleotide context for each input variant.")
-    if (noncoding == TRUE){
-      variants$context = get_context(as.character(variants$chr), variants$pos, CNEs)
-    } else {
-      variants$context = get_context(paste0("chr", variants$chr), variants$pos, gencode)
-    }
+
+    variants$context = get_context(as.character(variants$chr), variants$pos, sequences)
   }
 
   if (!("alt_context" %in% colnames(variants))){
@@ -173,7 +178,7 @@ ps_raw = function(variants, split_factor){
   return(list("ps_raw" = ps_raw, "standard_error" = standard_error))
 }
 
-maps_ggplot = function(split_levels, ps_adjusted, standard_error, already_ordered = FALSE, add_coding_fixed = FALSE, colors = NULL, score_name = "Scoring Metric"){
+maps_ggplot = function(split_levels, ps_adjusted, standard_error, already_ordered = FALSE, add_coding_fixed = FALSE, add_synonymous_fixed = FALSE, colors = NULL, score_name = "Scoring Metric"){
   # makes a simple ggplot of the mutability adjusted prop of singletons with error bars
 
   
@@ -192,6 +197,12 @@ maps_ggplot = function(split_levels, ps_adjusted, standard_error, already_ordere
   if (add_coding_fixed == TRUE){  # these are from VEP consequences on DDD unaffected parents
     coding_fixed = data.frame(split_level = c("Synonymous", "Missense", "Stop Gained"), ratio = c(0, 0.0395, 0.123), se = c(0.0007, 0.0005, 0.003))
     coding_fixed$colors = "Coding VEP"
+    df$colors = score_name
+    df = rbind(df, coding_fixed)
+    colors = TRUE
+  } else if (add_synonymous_fixed == TRUE) {
+    coding_fixed = data.frame(split_level = "Synonymous", ratio = 0, se = 0.0007)
+    coding_fixed$colors = "Synonymous"
     df$colors = score_name
     df = rbind(df, coding_fixed)
     colors = TRUE
