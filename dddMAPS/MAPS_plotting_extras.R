@@ -28,11 +28,12 @@ maps_plus_bar = function(split_levels, ps_adjusted, standard_error, variants, sp
     counts$split_level = factor(counts$split_level, levels = c(split_levels))
   }
   
-  counts = ggplot(counts) + geom_bar(aes(split_level, counts), stat = "identity") + coord_flip() + xlab("Number of Variants") + ylab("Counts") +
-    theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
-    theme(plot.title = element_text(size = 16), axis.text = element_text(size = 14),
-          axis.title = element_text(size = 16), legend.title=element_blank(), legend.text=element_text(size = 12))
-  
-  grid.arrange(counts, main, ncol = 2, widths=c(1.4, 4))
+  counts = ggplot(counts) + geom_bar(aes(split_level, counts/1000), stat = "identity") + coord_flip() + xlab("Number of Variants (Thousands)") + ylab("Counts") +
+    theme_bw(base_size = 18) + 
+    theme(strip.text = element_text(color="black"),strip.background = element_rect(fill="white", size=0),panel.border = element_blank()) + 
+    theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank()) +
+    theme(legend.title = element_blank())
+    theme(axis.text.x = element_text(angle = 60, hjust = 1))
+  grid.arrange(counts, main, ncol = 2, widths=c(2, 3.5))
   
 }

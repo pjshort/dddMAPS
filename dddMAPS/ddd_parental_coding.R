@@ -1,5 +1,6 @@
 # example of MAPS.R usage on DDD coding variants
 source("./MAPS.R")
+source("./MAPS_plotting_extras.R")
 library(Biostrings)
 library(stringr)
 
@@ -18,7 +19,6 @@ mutation[mutation %in% trinucleotide_rev_complements$V2] = as.character(trinucle
 #parental_gencode = subset(parental_gencode, nchar(as.character(ref)) == 1 & nchar(as.character(alt)) == 1)
 
 synonymous_parental_vars = subset(parental_gencode_snps, vep_consequence == "synonymous_variant")
-
 
 # fit linear model to synonymous variants
 maps_lm = maps_fit(synonymous_parental_vars)

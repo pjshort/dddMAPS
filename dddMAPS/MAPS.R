@@ -199,6 +199,7 @@ maps_ggplot = function(split_levels, ps_adjusted, standard_error, already_ordere
     coding_fixed$colors = "Coding VEP"
     df$colors = score_name
     df = rbind(df, coding_fixed)
+    df$colors = factor(df$colors, levels = c(score_name, "Coding VEP"), ordered = TRUE)
     colors = TRUE
   } else if (add_synonymous_fixed == TRUE) {
     coding_fixed = data.frame(split_level = "Synonymous", ratio = 0, se = 0.0007)
@@ -218,17 +219,19 @@ maps_ggplot = function(split_levels, ps_adjusted, standard_error, already_ordere
     ggplot(df, aes(split_level, ratio)) +
       geom_pointrange(limits, size = 1.25) + coord_flip() +
       xlab(score_name) + ylab("Mutability Adjusted Proportion of Singletons") +
-      theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
-      theme(plot.title = element_text(size = 16), axis.text = element_text(size = 14),
-            axis.title = element_text(size = 16), legend.title=element_blank(), legend.text=element_text(size = 12))
+      theme_bw(base_size = 18) + 
+      theme(axis.title.x = element_blank(), strip.text = element_text(color="black"),strip.background = element_rect(fill="white", size=0),panel.border = element_blank()) + 
+      theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank()) +
+      theme(legend.title = element_blank())
   } else {  # plot with colored entries
     limits = aes(ymin = df$ratio - 1.96*df$se, ymax = df$ratio + 1.96*df$se)
     ggplot(df, aes(split_level, ratio, color = colors)) +
       geom_pointrange(limits, size = 1.25) + coord_flip() +
       xlab(score_name) + ylab("Mutability Adjusted Proportion of Singletons") +
-      theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
-      theme(plot.title = element_text(size = 16), axis.text = element_text(size = 14),
-            axis.title = element_text(size = 16), legend.title=element_blank(), legend.text=element_text(size = 12))
+      theme_bw(base_size = 18) + 
+      theme(axis.title.x = element_blank(), strip.text = element_text(color="black"),strip.background = element_rect(fill="white", size=0),panel.border = element_blank()) + 
+      theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank()) +
+      theme(legend.title = element_blank())
   }
 }
 
