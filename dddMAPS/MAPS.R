@@ -20,7 +20,9 @@ mu_snp <- read.table("~/reference_data/forSanger_1KG_mutation_rate_table.txt", h
 gencode = read.table("~/reference_data/gencode.v19.CDS.probe_overlap.min10_coverage.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 noncoding_intervals = read.table("~/reference_data/noncoding_control_and_functional.min10_coverage.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)  # only needed for noncoding analysis
 
-sequences = rbind(gencode[,c("chr", "start", "stop", "seq")], noncoding_intervals[,c("chr", "start", "stop", "seq")])
+#gencode = read.table("../data/gencode.v19.CDS.probe_overlap.min10_coverage.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+#noncoding_intervals = read.table("../data/noncoding_control_and_functional.min10_coverage.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)  # only needed for noncoding analysis
+#sequences = rbind(gencode[,c("chr", "start", "stop", "seq")], noncoding_intervals[,c("chr", "start", "stop", "seq")])
 
 ### get the trinucleotide context
 
@@ -195,10 +197,11 @@ maps_ggplot = function(split_levels, ps_adjusted, standard_error, already_ordere
   }
   
   if (add_coding_fixed == TRUE){  # these are from VEP consequences on DDD unaffected parents
-    coding_fixed = data.frame(split_level = c("Synonymous", "Missense", "Stop Gained"), ratio = c(0, 0.0395, 0.123), se = c(0.0007, 0.0005, 0.003))
+    coding_fixed = data.frame(split_level = c("Synonymous", "Missense", "Stop Gained"), ratio = c(0, 0.0548, 0.141), se = c(0.0007, 0.0006, 0.0035))
     coding_fixed$colors = "Coding VEP"
     df$colors = score_name
     df = rbind(df, coding_fixed)
+    df$colors = factor(df$colors, levels = c(score_name, "Coding VEP"), ordered = TRUE)
     colors = TRUE
   } else if (add_synonymous_fixed == TRUE) {
     coding_fixed = data.frame(split_level = "Synonymous", ratio = 0, se = 0.0007)
@@ -218,17 +221,19 @@ maps_ggplot = function(split_levels, ps_adjusted, standard_error, already_ordere
     ggplot(df, aes(split_level, ratio)) +
       geom_pointrange(limits, size = 1.25) + coord_flip() +
       xlab(score_name) + ylab("Mutability Adjusted Proportion of Singletons") +
-      theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
-      theme(plot.title = element_text(size = 16), axis.text = element_text(size = 14),
-            axis.title = element_text(size = 16), legend.title=element_blank(), legend.text=element_text(size = 12))
+      theme_bw(base_size = 18) + 
+      theme(strip.text = element_text(color="black"),strip.background = element_rect(fill="white", size=0),panel.border = element_blank()) + 
+      theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank()) +
+      theme(legend.title = element_blank())
   } else {  # plot with colored entries
     limits = aes(ymin = df$ratio - 1.96*df$se, ymax = df$ratio + 1.96*df$se)
     ggplot(df, aes(split_level, ratio, color = colors)) +
       geom_pointrange(limits, size = 1.25) + coord_flip() +
       xlab(score_name) + ylab("Mutability Adjusted Proportion of Singletons") +
-      theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
-      theme(plot.title = element_text(size = 16), axis.text = element_text(size = 14),
-            axis.title = element_text(size = 16), legend.title=element_blank(), legend.text=element_text(size = 12))
+      theme_bw(base_size = 18) + 
+      theme(strip.text = element_text(color="black"),strip.background = element_rect(fill="white", size=0),panel.border = element_blank()) + 
+      theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank()) +
+      theme(legend.title = element_blank())
   }
 }
 
