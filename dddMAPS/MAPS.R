@@ -16,9 +16,9 @@ library(plyr)
 library(stringr)
 
 print("Loading mutation data and gencode transcripts...")
-mu_snp <- read.table("../data/forSanger_1KG_mutation_rate_table.txt", header=TRUE)
-gencode = read.table("../data/gencode.v19.CDS.probe_overlap.min10_coverage.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-noncoding_intervals = read.table("../data/noncoding_control_and_functional.min10_coverage.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)  # only needed for noncoding analysis
+mu_snp <- read.table("~/reference_data/forSanger_1KG_mutation_rate_table.txt", header=TRUE)
+gencode = read.table("~/reference_data/gencode.v19.CDS.probe_overlap.min10_coverage.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+noncoding_intervals = read.table("~/reference_data/noncoding_control_and_functional.min10_coverage.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)  # only needed for noncoding analysis
 
 sequences = rbind(gencode[,c("chr", "start", "stop", "seq")], noncoding_intervals[,c("chr", "start", "stop", "seq")])
 
