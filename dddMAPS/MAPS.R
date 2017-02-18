@@ -16,14 +16,16 @@ library(plyr)
 library(stringr)
 
 print("Loading mutation data and gencode transcripts...")
-mu_snp <- read.table("../data/forSanger_1KG_mutation_rate_table.txt", header=TRUE)
+mu_snp <- read.table("~/phd/code/dddMAPS/data/forSanger_1KG_mutation_rate_table.txt", header=TRUE)
 
-#gencode = read.table("../data/gencode.v19.CDS.probe_overlap.min10_coverage.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-#noncoding_intervals = read.table("../data/noncoding_control_and_functional.min10_coverage.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)  # only needed for noncoding analysis
-#sequences = rbind(gencode[,c("chr", "start", "stop", "seq")], noncoding_intervals[,c("chr", "start", "stop", "seq")])
+gencode = read.table("~/phd/code/dddMAPS//data/gencode.v19.CDS.probe_overlap.min10_coverage.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+noncoding_intervals = read.table("~/phd/code/de_novo_noncoding/data/de_novo_analysis_regions.noncoding_only.8August2016.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)  # only needed for noncoding analysis
+control_introns = read.table("~/phd/code/dddMAPS//data/noncoding_control_elements.10bp_buffer.min10_coverage.30bp_element_minimum.30x_probe_coverage_minimum.no_ddg2p_overlap.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+
+sequences = rbind(gencode[,c("chr", "start", "stop", "seq")], noncoding_intervals[,c("chr", "start", "stop", "seq")], control_introns[,c("chr", "start", "stop", "seq")])
 
 ### get the trinucleotide context
-
+ 
 get_tri = function(interval_idx, pos, intervals) {
   
   start = pos - intervals$start[interval_idx]
@@ -118,7 +120,7 @@ maps_fit = function(synonymous_vars){
 }
 
 
-maps_adjust = function(variants, split_factor, maps_lm) {
+maps_adjust = function(variants, split_factor, maps_lm, minimum = 100) {
   # take a dataframe of variants that are separated by some identifier called split_factor e.g. "cadd_score"
   # maps_model is a linear model learned on presumed synonymous mutations using lm(singletons/n ~ mu_snp)
   # with mu_snp from the tri-nucleotide mutation model
@@ -164,7 +166,26 @@ maps_adjust = function(variants, split_factor, maps_lm) {
   ps_predicted = predict(maps_lm, data.frame(mu_snp = unlist(mu_average)))
   ps_adjusted = ps_raw - ps_predicted
   
+  print("Removing any data points below minimum... Default is 100.")
+  ps_adjusted[counts < minimum] = NA
+  standard_error[counts < minimum] = NA
+  
   return(list("ps_adjusted" = ps_adjusted, "standard_error" = standard_error))
+}
+
+maps_grid <- function(variants, split_factor_x, split_factor_y, maps_lm){
+  # loop over the split_factor_y - this gives us a maps_adjust output for each level of y
+  variants_by_y = split(variants, variants[,split_factor_y])
+  
+  ps_mat = matrix(ncol = length(levels(variants[,split_factor_x])), nrow = length(levels(variants[,split_factor_y])))
+  colnames(ps_mat) = levels(variants[,split_factor_x])
+  rownames(ps_mat) = levels(variants[,split_factor_y])
+  
+  for (i in seq_along(variants_by_y)) {
+    print(i)
+    v = variants_by_y[[i]]
+    ps_mat[i,] = maps_adjust(v, v[,split_factor_x], maps_lm, minimum = 100)$ps_adjusted
+  }
 }
 
 ps_raw = function(variants, split_factor){
@@ -178,7 +199,7 @@ ps_raw = function(variants, split_factor){
   return(list("ps_raw" = ps_raw, "standard_error" = standard_error))
 }
 
-maps_ggplot = function(split_levels, ps_adjusted, standard_error, already_ordered = FALSE, add_coding_fixed = FALSE, add_synonymous_fixed = FALSE, colors = NULL, score_name = "Scoring Metric"){
+maps_ggplot = function(split_levels, ps_adjusted, standard_error, already_ordered = FALSE, add_coding_fixed = c(0, 0.0548, 0.141), add_synonymous_fixed = FALSE, colors = NULL, score_name = "Scoring Metric"){
   # makes a simple ggplot of the mutability adjusted prop of singletons with error bars
 
   
@@ -194,8 +215,8 @@ maps_ggplot = function(split_levels, ps_adjusted, standard_error, already_ordere
     df = df[order(df$ratio),]
   }
   
-  if (add_coding_fixed == TRUE){  # these are from VEP consequences on DDD unaffected parents
-    coding_fixed = data.frame(split_level = c("Synonymous", "Missense", "Stop Gained"), ratio = c(0, 0.0548, 0.141), se = c(0.0007, 0.0006, 0.0035))
+  if (any(add_coding_fixed != FALSE)){  # these are from VEP consequences on DDD unaffected parents
+    coding_fixed = data.frame(split_level = c("Synonymous", "Missense", "Stop Gained"), ratio = add_coding_fixed, se = c(0.0007, 0.0006, 0.0035))
     coding_fixed$colors = "Coding VEP"
     df$colors = score_name
     df = rbind(df, coding_fixed)

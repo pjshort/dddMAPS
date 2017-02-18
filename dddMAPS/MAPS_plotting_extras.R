@@ -11,6 +11,8 @@ maps_plus_bar = function(split_levels, ps_adjusted, standard_error, variants, sp
   # get the main singleton plot
   main = maps_ggplot(split_levels, ps_adjusted, standard_error, add_coding_fixed = add_coding_fixed, add_synonymous_fixed = add_synonymous_fixed, already_ordered = TRUE, colors = colors, score_name = score_name)
   
+  main = main + xlab("")
+  
   # get the number of variants per split level
   counts = sapply(split(variants, split_factor), nrow)
   counts = data.frame(counts = counts, split_level = split_levels)
@@ -28,7 +30,7 @@ maps_plus_bar = function(split_levels, ps_adjusted, standard_error, variants, sp
     counts$split_level = factor(counts$split_level, levels = c(split_levels))
   }
   
-  counts = ggplot(counts) + geom_bar(aes(split_level, counts/1000), stat = "identity") + coord_flip() + xlab("Number of Variants (Thousands)") + ylab("Counts") +
+  counts = ggplot(counts) + geom_bar(aes(split_level, counts/1000), stat = "identity") + coord_flip() + ylab("Number of Variants (Thousands)") + xlab(score_name) +
     theme_bw(base_size = 18) + 
     theme(strip.text = element_text(color="black"),strip.background = element_rect(fill="white", size=0),panel.border = element_blank()) + 
     theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank()) +
