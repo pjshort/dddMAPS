@@ -1,0 +1,60 @@
+### dependencies
+library(optparse)
+library(plyr)
+source("./mutation_null_model.R")
+source("../MACB_library.R")
+
+### command line options
+option_list <- list(
+  make_option("--variants", help="File with observed variants in the population."),
+  make_option("--regions", help="List of regions to assign variants to correct element. Should match MACB_expected input."),
+  make_option("--MACB_expected", help="Regions used to regress synonymous variation against mutability"),
+  make_option("--gene_mutation_rates", help="Mutations rates calculated per gene"),
+  make_option("--gene_summary_out", help="Output file for synonymous Z scores."),
+  make_option("--model_out", help="Output file for linear model (saved as RData object)"),
+  make_option("--pop_size", default=4294, help="Size of the population (number of individuals). Used to calculate allele count cutoff for rare vars (<0.1%).")
+)
+
+args <- parse_args(OptionParser(option_list=option_list))
+
+variants = read.table(args$variants, header = TRUE, sep = "\t")
+regions = read.table(args$regions, header = TRUE, sep = "\t")
+gene_mutation_rates = read.table(args$gene_mutation_rates, header = TRUE, sep = "\t")
+
+# get region ids for the variants based on regions passed
+variants = get_gene(variants, regions)
+
+# calculate the allele count cutoff for synonymous model
+rare_var_ac = args$pop_size*2*0.001  # multiply by two for no. of chroms and cutoff of 0.1%
+
+synonymous_coding = subset(variants, consequence == "synonymous_variant")
+rare_synonymous_coding = subset(synonymous_coding, allele_count <= rare_var_ac)
+
+# count the number of rare synonymous variants per region 
+gene_synonymous_counts = ddply(rare_synonymous_coding, .variables = c("gene"), .fun = function(df) data.frame(observed_rare_synonymous_count = sum(df$allele_count)))
+gene_synonymous_counts$p_snp_null = gene_mutation_rates$p_snp_synonymous[match(gene_synonymous_counts$gene, gene_mutation_rates$gene)]
+
+write("Fitting linear model to the synonymous counts as a function of mutation rate.")
+
+# fit linear model and save as RData object
+synonymous_lm = lm(observed_rare_synonymous_count ~ p_snp_null, gene_synonymous_counts)
+save(synonymous_lm, file = args$model_out)
+
+write("Calculating Z scores for synonymous predictions for each gene.")
+
+# calculate z scores for the synonymous observed v. expected counts
+gene_synonymous_counts$expected_rare_synonymous_count = predict(synonymous_lm, gene_synonymous_counts)
+gene_synonymous_counts$synonymous_z = MACB_Z(observed = as.numeric(as.character(gene_synonymous_counts$observed_rare_synonymous_count)), expected = gene_synonymous_counts$expected_rare_synonymous_count)
+
+# create and save the gene summary
+# includes mutability, synonymous z score, and mutability scores for different classes of mutation
+
+head(gene_synonymous_counts)
+head(gene_mutation_rates)
+
+gene_synonymous_counts = merge(gene_synonymous_counts, gene_mutation_rates, by = "gene")
+gene_summary = gene_synonymous_counts[,c("gene", "synonymous_z", "p_snp_total", "p_snp_synonymous", "p_snp_missense", "p_snp_lof", "p_snp_cadd_l5", "p_snp_cadd_g20", "p_snp_cadd_g30")]
+
+write("Saving gene summary to output file provided.")
+
+write.table(gene_summary, file = args$gene_summary_out, col.names = TRUE, sep = "\t", row.names = FALSE, quote = FALSE)
